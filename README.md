@@ -16,6 +16,8 @@ Two types of accounts are created:
 
 The only difference between the two would be size of XFS quota, 100G vs 2G, as well as email addresses stored in LDAP.  This resulted from an environment where non-standard users were granted access to enterprise resources.
 
+You can disable the collabrator if desired by editing **create_user.yml**.
+
 In **scratch.yml** the role will also create defined directories on GPFS scratch.
 
 
