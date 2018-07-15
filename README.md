@@ -108,7 +108,12 @@ Send response:
 ansible-playbook accounts.yml "-e hosts=gpfs_node -e rsms=[] -e number=+1phone -e user=user" -t rsms --sudo -K --ask-vault-pass
 ```
 
+
+
 **Note, you can use a bash function in ~/.bashrc to make these easier to use.**
+
+
+
 
 For example:
 
