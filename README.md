@@ -79,7 +79,7 @@ Examples
 Create user in LDAP:
 
 ```
-ansible-playbook accounts.yml "-e hosts=gpfs_node -e user=neu2001 -e group=lab -e gecos='full name' -e create=[]" --sudo -K --ask-vault-pass
+ansible-playbook accounts.yml "-e hosts=gpfs_node -e user=user -e group=lab -e gecos='full name' -e create=[]" --sudo -K --ask-vault-pass
 ```
 
 Remove user from LDAP:
@@ -108,7 +108,7 @@ Send response:
 ansible-playbook accounts.yml "-e hosts=gpfs_node -e rsms=[] -e number=+1phone -e user=user" -t rsms --sudo -K --ask-vault-pass
 ```
 
-***Note, you can use a bash function in ~/.bashrc to make these easier to use.***  
+**Note, you can use a bash function in ~/.bashrc to make these easier to use.**
 
 For example:
 
