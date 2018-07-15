@@ -125,7 +125,11 @@ csms() { ansible-playbook $ANSIBLE_HOME/accounts.yml "-e hosts=gpfs_node -e user
 rsms() { ansible-playbook $ANSIBLE_HOME/accounts.yml "-e hosts=gpfs_node -e user=$1 -e number=+1$2 -e rsms=[]" -t rsms --sudo -K --ask-vault-pass ; }
 ```
 
+
+
 Thus to create a collab account type in bash:
+
+
 
 
 ```
