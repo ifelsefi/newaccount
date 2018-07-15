@@ -1,0 +1,4 @@
+
+- name: remove user in ldap  
+  tags: remove
+  shell: LDAPTLS_REQCERT=never /usr/bin/ldapdelete -x -ZZ -H '{{ lserver }}' -D '{{ MG }},{{ DN }}' -v 'uid={{ user }},{{ OU }},{{ DN }}' -w '{{ openldap_server_rootpw }}'

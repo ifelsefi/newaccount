@@ -1,0 +1,79 @@
+# defined empty vars used to populate lists in xfs.yml
+homedir: []
+qpresent: []
+qusage: []
+eligible: []
+chosen: []
+
+# location of user ldif
+ldif: /tmp/user.ldif
+
+# location of lab hosts ldif
+lab_ldif: /tmp/lab_hosts.ldif
+
+#domain prefix for ldap
+openldap_server_domain_name: ldap.example.com
+
+# used in ldif templates for email
+fqdn: "{{ openldap_server_domain_name }}"
+
+#your ldap server
+openldap_server: provider.ldap.example.com
+
+#nfs server used in xfs.yml
+nfs_server: 'nfs.example.com'
+
+#gpfs node used in scratch.yml
+gpfs_node: 'gpfs.example.com'
+
+#nfs quota used in xfs.yml
+quota: 100g
+collab_quota: 2g
+
+#scratch path used in scratch.yml
+spath: '/gpfs/{{ item.gpfs_fs }}/{{ item.name }}/users'
+
+#ldap server
+lserver: "ldap://{{ openldap_server }}"
+
+#accounts org unit
+OU: ou=People
+
+# openldap manager
+MG: cn=Manager
+
+#manager password for ldap
+openldap_server_rootpw: 'use_ansible_vault'
+
+#random initial user password
+pass: "{{ random }}"
+
+# base dn - split as ldap.example.com
+DN: "dc={{ openldap_server_domain_name.split('.')[0] }},dc={{ openldap_server_domain_name.split('.')[1] }},dc={{ openldap_server_domain_name.split('.')[2] }},dc={{ openldap_server_domain_name.split('.')[3] }}"
+
+# search
+search: "uidNumber | grep uidNumber | cut -d ':' -f2 | sed -n '1!p' | tr -d ' ' | sort -n"
+
+# list of groups used for matching gids in xfs.yml
+# as well as setting scratch directories in scratch.yml
+# would be better to pull gid's from ldap
+# rather than duplicating them in this dict
+user_dict:
+ - { name: 'lab', gid: '31337', gpfs_fs: 'fs1' }
+ - { name: 'lab1', gid: '12345', gpfs_fs: 'fs1' }
+
+# sms challenge phrase sent by csms.yml
+challenge: science
+
+# slack token used for telling team that the role was ran
+slack_token: 'slack_token'
+
+# twilio creds
+account_sid: 'account_sid'
+auth_token: 'auth_token'
+from_number: 'from_number'
+
+#email vars used in email.yml
+from: 'sysadmin@example.com'
+to: "{{ from }}"
+ncc: "{{ user }}@{{ fqdn }}"

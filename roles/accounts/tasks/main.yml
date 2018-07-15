@@ -1,0 +1,21 @@
+
+- include: create_user.yml
+  when: create is defined or collab is defined
+
+- include: remove_user.yml
+  when: remove is defined
+
+- include: xfs.yml
+  when: create is defined or collab is defined
+
+- include: scratch.yml
+  when: create is defined or collab is defined
+
+- include: email.yml
+  when: create is defined or collab is defined
+
+- include: challenge.yml
+  when: csms is defined
+
+- include: response.yml
+  when: rsms is defined

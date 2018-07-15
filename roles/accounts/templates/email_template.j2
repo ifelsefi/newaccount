@@ -1,0 +1,14 @@
+Hello {{ gecos }},
+<br>
+<br>
+We've created an account with user name "{{ user }}".....
+<br>
+<br>
+{% if group == 'lab' %}
+<br>
+Scratch directory:<br>
+<br>
+{{ scratchdir_lab.path }}
+<br>
+{% endif %}
+

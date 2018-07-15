@@ -1,0 +1,10 @@
+  
+
+- name: create scratch directory for lab user
+  tags: scratch
+  file: path={{ spath }}/{{ user }} owner="{{ user }}" group="{{ group }}" state=directory
+  delegate_to: "{{ gpfs_node }}"
+  when: group == 'lab'
+  register: scratchdir_{{ item.name }}
+  with_items: "{{ user_dict }}"
+

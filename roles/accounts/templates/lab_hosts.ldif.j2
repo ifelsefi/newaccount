@@ -1,0 +1,8 @@
+dn: uid={{ user }},{{ OU }},{{ DN }}
+changetype: modify
+add: host
+host: login.example.com
+host: submit.example.com
+{% if group == 'lab1' %}
+host: labserver.example.com
+{% endif %}

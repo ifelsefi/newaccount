@@ -1,0 +1,14 @@
+
+galaxy_info:
+  author: "Douglas Duckworth"
+  company: N/A
+  license: GPL
+  min_ansible_version: 2.0
+  platforms:
+   - name: EL
+     versions:
+      - 5
+      - 6
+  categories:
+   - system
+dependencies: []

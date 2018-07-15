@@ -1,0 +1,144 @@
+
+- name: get fs list
+  tags: xfs
+  shell: cat /proc/mounts | grep /homes | awk ' { print $2 } '
+  register: fs_result
+  delegate_to: "{{ nfs_server }}"
+
+  # debugging options for above which test "get rid of file systems that are full" conditional
+  #shell: cat /proc/mounts | grep /fs | awk ' { print $2 } ' # this tests both qpreset and usage
+  #shell: cat /proc/mounts | grep /fs | awk ' { print $2 } ' # this tests usage
+
+- name: get fs free space
+  tags: xfs
+  shell: df | grep {{ item }} | awk 'FNR == 1 { print $2 } '
+  with_items: "{{ fs_result.stdout_lines }}"
+  register: fsusage_result
+  delegate_to: "{{ nfs_server }}"
+
+- name: count quota users
+  tags: xfs
+  shell: xfs_quota -xc 'report -h' {{ item }} | grep -v -E '[q]uotauser|root' | tail -n +5 | grep [1]00G | sort | uniq | wc -l
+  with_items: "{{ fs_result.stdout_lines }}"
+  register: q
+  delegate_to: "{{ nfs_server }}"
+
+  #- name: print fsusage in kb
+  #  tags: xfs
+  #  debug: var=item.stdout_lines
+  #  with_items: "{{ fsusage_result.results }}"
+
+  #- name: print quota users
+  #  tags: xfs
+  #  debug: var=item.stdout_lines
+  #  with_items: "{{ q.results }}"
+
+- name: populate homedir
+  tags: xfs
+  set_fact:
+    homedir: "{{ homedir + [ {'homedir': item.item, 'usage': item.stdout_lines } ] }}" 
+  with_items: "{{ fsusage_result.results }}"
+  delegate_to: "{{ nfs_server }}"
+
+- name: populate qpresent
+  tags: xfs
+  set_fact:
+    qpresent: "{{ qpresent + [ { 'homedir': item.item, 'qpresent': item.stdout_lines } ] }}"
+  with_items: "{{ q.results }}"
+  delegate_to: "{{ nfs_server }}"
+
+- name: populate qusage
+  tags: xfs
+  set_fact:
+    qusage: "{{ qusage + [ { 'homedir': item[0].homedir, 'usage': item[0].usage, 'qpresent': item[1].qpresent } ] }}"
+  with_together: 
+    - "{{ homedir }}"
+    - "{{ qpresent }}"
+  delegate_to: "{{ nfs_server }}"
+
+  #- name: print quotausage
+  #  tags: xfs
+  #  debug: var=item.qpresent
+  #  with_items: "{{ qusage }}"
+  #  delegate_to: "{{ nfs_server }}"
+
+- name: get rid of file systems that are full
+  tags: xfs
+  debug: var=item
+  with_items: "{{ qusage }}"
+  register: extermination
+  when: item.qpresent[0]|int < 7 and item.usage[0]|int < 734003200 
+
+  #- name: print those that are not full
+  #  tags: xfs
+  #  debug: var=item.item.homedir
+  #  with_items: "{{ extermination.results }}"
+
+- name: populate eligible
+  tags: xfs
+  set_fact:
+    eligible: "{{ eligible + [ { 'homedir': item.item.homedir } ] }}"
+  with_items: "{{ extermination.results }}"
+  when: item.skipped is not defined
+
+  #- name: print those that are eligible
+  #  tags: xfs
+  #  debug: var=item.homedir
+  #  with_items: "{{ eligible }}"
+
+- name: create homedir on fs which meets quota and utilization requirements
+  tags: xfs
+  file: path=/{{ item.homedir }}/{{ user }} owner="{{ user }}" group="{{ group }}" state=directory
+  with_random_choice: "{{ eligible }}"
+  register: chosenfs
+  delegate_to: "{{ nfs_server }}"
+
+- name: copy skel for new user
+  tags: xfs
+  shell: "cp -R /etc/skel/. {{ item.path }}/ && chown -R {{ user }}:{{ group }} {{ item.path }}"
+  with_items: "{{ chosenfs.results }}"
+  delegate_to: "{{ nfs_server }}"
+
+  #- name: print chosenfs results
+  #  tags: xfs
+  #  debug: var=item.item.homedir
+  #  with_items: "{{ chosenfs.results }}"
+
+- name: set user quota
+  tags: xfs
+  command: "xfs_quota -x -c 'limit bsoft={{ quota }} bhard={{ quota }} {{ user }}' {{ item.item.homedir }}"
+  with_items: "{{ chosenfs.results }}"
+  when: collab is not defined
+  delegate_to: "{{ nfs_server }}"
+
+- name: set collab quota
+  tags: xfs
+  command: "xfs_quota -x -c 'limit bsoft={{ collab_quota }} bhard={{ collab_quota }} {{ user }}' {{ item.item.homedir }}"
+  with_items: "{{ chosenfs.results }}"
+  when: collab is defined
+  delegate_to: "{{ nfs_server }}"
+
+  #- name: verify user quota
+  #  tags: xfs
+  #  shell: "xfs_quota -x -c 'report -h' {{ item.item.homedir }}"
+  #  with_items: "{{ chosenfs.results }}"
+  #  register: qset
+  #  delegate_to: "{{ nfs_server }}"
+
+  #- debug: var=item.stdout_lines
+  #  tags: xfs
+  #  with_items: "{{ qset.results }}"
+
+- name: xfs notification
+  tags: xfs
+  slack: token={{ slack_token }} channel=#ansible msg='{{ user }} home directory set by {{ ansible_env.SUDO_USER }} at {{ item.item.homedir }}' color=good
+         icon_url=http://media.linkonlineworld.com/img/Large/2014/11/9/2014_11_9_10_22_13_286.jpg
+  with_items: "{{ chosenfs.results }}"
+  when: ansible_env.SUDO_USER is defined
+
+- name: xfs notification
+  tags: xfs
+  slack: token={{ slack_token }} channel=#ansible msg='{{ user }} home directory set by {{ ansible_env.USER }} at {{ item.item.homedir }}' color=good
+         icon_url=http://media.linkonlineworld.com/img/Large/2014/11/9/2014_11_9_10_22_13_286.jpg
+  with_items: "{{ chosenfs.results }}"
+  when: ansible_env.USER == 'root' and ansible_env.SUDO_USER is not defined

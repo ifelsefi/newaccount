@@ -1,0 +1,14 @@
+dn: uid={{ user }},{{ OU }},{{ DN }}
+objectClass: account
+objectClass: posixAccount
+objectClass: top
+objectClass: extensibleObject
+uid: {{ user }}
+cn: {{ gecos }}
+loginShell: /bin/bash
+uidNumber: {{ uidnumber }}
+gidNumber: {{ item.gid }}
+homeDirectory: /home/{{ user }}
+gecos: {{ gecos }}
+mail: {{ user }}@{{ fqdn }}
+userPassword: {{ pass }}

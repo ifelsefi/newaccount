@@ -1,0 +1,89 @@
+
+- name: check for duplicates uids in ldap and fail if found
+  tags: create,collab,dup
+  shell: "LDAPTLS_REQCERT=never /usr/bin/ldapsearch -x -ZZ -H '{{ lserver }}' -D '{{ MG }},{{ DN }}' -w '{{ openldap_server_rootpw }}' {{ search }} | uniq -d"
+  register: duplicates
+  failed_when: "{{ duplicates.stdout_lines != [] }}"
+  changed_when: "{{ duplicates.stdout_lines != [] }}"
+
+# print above var
+#- debug: msg="{{ duplicates.stdout_lines }}"
+#  tags: create,dup
+
+- name: get last uidumber
+  tags: create,collab
+  shell: "LDAPTLS_REQCERT=never /usr/bin/ldapsearch -x -ZZ -H '{{ lserver }}' -D '{{ MG }},{{ DN }}' -w '{{ openldap_server_rootpw }}' {{ search }} | tail -1"
+  register: lastuid
+
+#- debug: msg="{{ lastuid }}"
+
+- name: increment uidnumber
+  tags: create,collab
+  set_fact: uidnumber={{ lastuid.stdout | int + 1 }}
+
+#- debug: msg="{{ uidnumber }}"
+#  tags: create,collab
+
+  #- debug: var={{ item[0].name }}
+  #  tags: create
+  #  with_nested: 
+  #    - "{{ dict }}"
+  #    - "{{ group }}"
+
+- name: choose gid
+  tags: create,collab
+  set_fact:
+    chosen: "{{ chosen + [ { 'gid': item[0].gid } ] }}"
+  with_nested: 
+    - "{{ user_dict }}"
+    - "{{ group }}"
+  when: item[1] == item[0].name
+
+  #- debug: var={{ item.name }} 
+  #  tags: create
+  #  with_items: "{{ chosen }}"
+
+- name: remove user ldif
+  tags: create,collab
+  file: name={{ ldif }} state=absent state=file
+  ignore_errors: yes
+
+- name: select random pw
+  tags: create
+  command: "openssl rand -base64 15"
+  register: random
+
+- name: template user ldif
+  tags: create
+  template: src=ldif.j2 dest={{ ldif }} mode=600 owner=root group=root
+  with_items: "{{ chosen }}"
+  when: collab is not defined
+
+- name: template collab ldif
+  tags: collab
+  template: src=collab.j2 dest={{ ldif }} mode=600 owner=root group=root
+  with_items: "{{ chosen }}"
+  when: collab is defined
+
+- name: create user in ldap 
+  tags: create,collab
+  shell: LDAPTLS_REQCERT=never /usr/bin/ldapadd -x -ZZ -H '{{ lserver }}' -D '{{ MG }},{{ DN }}' -f '{{ ldif }}' -w '{{ openldap_server_rootpw }}'
+
+- name: template lab_ldif
+  tags: create,collab
+  template: src=lab_hosts.ldif.j2 dest={{ lab_ldif }}
+
+- name: add lab hosts
+  tags: create,collab
+  shell: LDAPTLS_REQCERT=never /usr/bin/ldapmodify -x -ZZ -H '{{ lserver }}' -D '{{ MG }},{{ DN }}' -f '{{ lab_ldif }}' -w '{{ openldap_server_rootpw }}'
+
+- name: shred user ldif
+  tags: create,collab
+  shell: shred -n 200 -z -u {{ ldif }}
+
+- name: check for duplicates uids in ldap and fail if found
+  tags: create,collab,dup
+  shell: LDAPTLS_REQCERT=never /usr/bin/ldapsearch -x -ZZ -H '{{ lserver }}' -D '{{ MG }},{{ DN }}' -w '{{ openldap_server_rootpw }}' {{ search }} | uniq -d
+  register: dup_again
+  failed_when: "{{ dup_again.stdout_lines != [] }}"
+  changed_when: "{{ dup_again.stdout_lines != [] }}"

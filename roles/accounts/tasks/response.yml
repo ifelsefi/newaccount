@@ -1,0 +1,22 @@
+
+- name: send sms response
+  tags: rsms
+  twilio:
+   msg: "{{ pass }}"
+   account_sid: {{ account_sid }}
+   auth_token: {{ auth_token }}
+   from_number: {{ from_number }}
+   to_number: "{{ number }}"
+  ignore_errors: True
+
+- name: rsms notification
+  tags: rsms
+  slack: token={{ slack_token }} channel=#ansible msg='{{ user }} initial sent by {{ ansible_env.SUDO_USER }}' color=good
+         icon_url=http://media.linkonlineworld.com/img/Large/2014/11/9/2014_11_9_10_22_13_286.jpg
+  when: ansible_env.SUDO_USER is defined
+
+- name: rsms notification
+  tags: rsms
+  slack: token={{ slack_token }} channel=#ansible msg='{{ user }} initial pw set by {{ ansible_env.USER }}' color=good
+         icon_url=http://media.linkonlineworld.com/img/Large/2014/11/9/2014_11_9_10_22_13_286.jpg
+  when: ansible_env.USER == 'root' and ansible_env.SUDO_USER is not defined
