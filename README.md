@@ -12,7 +12,7 @@ Two types of accounts are created:
 
 ***normal***
 
-***collabrator***
+***collaborator***
 
 The only difference between the two would be size of XFS quota, 100G vs 2G, as well as email addresses stored in LDAP.  This resulted from an environment where non-standard users were granted access to enterprise resources.
 
